@@ -1,325 +1,280 @@
 import joplin from 'api';
-import {
-	ContentScriptType,
-	MenuItemLocation,
-	SettingItemType,
-	SettingStorage,
-	ToolbarButtonLocation,
-} from 'api/types';
-import { clearAutosave, getAutosave } from './autosave';
+import { MenuItemLocation } from 'api/types';
 import localization from './localization';
-import Resource from './Resource';
-import TemporaryDirectory from './TemporaryDirectory';
-import waitFor from './util/waitFor';
-import DrawingDialog from './dialog/DrawingDialog';
 import { pluginPrefix } from './constants';
-import { EditorStyle, ToolbarType } from './types';
-
-// While learning how to use the Joplin plugin API,
-// * https://github.com/herdsothom/joplin-insert-date/blob/main/src/index.ts
-// * and https://github.com/marc0l92/joplin-plugin-drawio
-// were both wonderful references.
-
-// Returns true if the CodeMirror editor is active.
-const isMarkdownEditor = async () => {
-	return (
-		(await joplin.commands.execute('editor.execCommand', {
-			name: 'js-draw--isCodeMirrorActive',
-		})) === 'active'
-	);
-};
-
-const saveRichTextEditorSelection = async () => {
-	// For saving the selection if switching between editors.
-	// We want the selection placeholder to be able to compile to a regular expression. Avoid
-	// non-alphanumeric characters.
-	const selectionPointIdText = `placeholderid${Math.random()}${Math.random()}`.replace(/[.]/g, 'x');
-
-	await joplin.commands.execute('editor.execCommand', {
-		name: 'mceInsertContent',
-		value: selectionPointIdText,
-	});
-
-	return selectionPointIdText;
-};
-
-const registerAndApplySettings = async (drawingDialog: DrawingDialog) => {
-	// Joplin adds a prefix to the setting in settings.json for us.
-	const editorFillsWindowKey = 'disable-editor-fills-window';
-	const autosaveIntervalKey = 'autosave-interval-minutes';
-	const toolbarTypeKey = 'toolbar-type';
-	const styleModeKey = 'style-mode';
-
-	const applySettings = async () => {
-		const fullscreenDisabled = await joplin.settings.value(editorFillsWindowKey);
-		await drawingDialog.setCanFullscreen(!fullscreenDisabled);
-
-		let autosaveIntervalMinutes = await joplin.settings.value(autosaveIntervalKey);
-
-		// Default to two minutes.
-		if (!autosaveIntervalMinutes) {
-			autosaveIntervalMinutes = 2;
-		}
-
-		await drawingDialog.setAutosaveInterval(autosaveIntervalMinutes * 60 * 1000);
-
-		const toolbarType = (await joplin.settings.value(toolbarTypeKey)) as ToolbarType;
-		drawingDialog.setToolbarType(toolbarType);
-
-		const styleMode = (await joplin.settings.value(styleModeKey)) as EditorStyle;
-		drawingDialog.setStyleMode(styleMode);
-	};
-
-	const jsDrawSectionName = 'js-draw';
-	await joplin.settings.registerSection(jsDrawSectionName, {
-		label: 'Freehand Drawing',
-		iconName: 'fas fa-pen-alt',
-		description: localization.settingsPaneDescription,
-	});
-
-	// Editor fullscreen setting
-	await joplin.settings.registerSettings({
-		[toolbarTypeKey]: {
-			public: true,
-			section: 'js-draw',
-
-			label: localization.toolbarTypeLabel,
-
-			isEnum: true,
-			type: SettingItemType.Int,
-			value: 0,
-
-			options: {
-				0: localization.toolbarTypeDefault,
-				1: localization.toolbarTypeSidebar,
-				2: localization.toolbarTypeDropdown,
-			},
-		},
-		[styleModeKey]: {
-			public: true,
-			section: 'js-draw',
-
-			label: localization.themeLabel,
-
-			isEnum: true,
-			type: SettingItemType.String,
-			value: EditorStyle.MatchJoplin,
-
-			options: {
-				[EditorStyle.MatchJoplin]: localization.styleMatchJoplin,
-				[EditorStyle.JsDrawLight]: localization.styleJsDrawLight,
-				[EditorStyle.JsDrawDark]: localization.styleJsDrawDark,
-			},
-		},
-		[editorFillsWindowKey]: {
-			public: true,
-			section: 'js-draw',
-
-			label: localization.fullScreenDisabledSettingLabel,
-			storage: SettingStorage.File,
-
-			type: SettingItemType.Bool,
-			value: false,
-		},
-		[autosaveIntervalKey]: {
-			public: false,
-			section: 'js-draw',
-
-			label: localization.autosaveIntervalSettingLabel,
-			storage: SettingStorage.File,
-
-			type: SettingItemType.Int,
-			value: 2,
-		},
-	});
-
-	await joplin.settings.onChange((_event) => {
-		void applySettings();
-	});
-
-	await applySettings();
-};
-
-/**
- * Inserts `textToInsert` at the point of current selection, **or**, if `richTextEditorSelectionMarker`
- * is given and the rich text editor is currently open, replaces `richTextEditorSelectionMarker` with
- * `textToInsert`.
- *
- * `richTextEditorSelectionMarker` works around a bug in the rich text editor. See
- * https://github.com/laurent22/joplin/issues/7547
- */
-const insertText = async (textToInsert: string, richTextEditorSelectionMarker?: string) => {
-	const wasMarkdownEditor = await isMarkdownEditor();
-
-	// MCE or Joplin has a bug where inserting markdown code for an SVG image removes
-	// the image data. See https://github.com/laurent22/joplin/issues/7547.
-	if (!wasMarkdownEditor) {
-		// Switch to the markdown editor.
-		await joplin.commands.execute('toggleEditors');
-
-		// Delay: Ensure we're really in the CodeMirror editor.
-		await waitFor(100);
-
-		// Jump to the rich text editor selection
-		await joplin.commands.execute('editor.execCommand', {
-			name: 'js-draw--cmSelectAndDelete',
-			args: [richTextEditorSelectionMarker],
-		});
-	}
-
-	await joplin.commands.execute('insertText', textToInsert);
-
-	// Try to switch back to the original editor
-	if (!wasMarkdownEditor) {
-		await joplin.commands.execute('toggleEditors');
-	}
-};
+import SettingsManager from './SettingsManager';
+import computeNewNoteContent from './util/computeNewNoteContent';
+import createMinutesPerDayTable from './util/createMinutesPerDayTable';
 
 joplin.plugins.register({
 	onStart: async function () {
-		const drawingDialog = await DrawingDialog.getInstance();
-		const tmpdir = await TemporaryDirectory.create();
+		const settingsManager = new SettingsManager();
 
-		await registerAndApplySettings(drawingDialog);
-
-		const insertNewDrawing = async (svgData: string, richTextEditorSelectionData?: string) => {
-			const resource = await Resource.ofData(
-				tmpdir,
-				svgData,
-				localization.defaultImageTitle,
-				'.svg',
-			);
-
-			const textToInsert = `![${resource.htmlSafeTitle()}](:/${resource.resourceId})`;
-			await insertText(textToInsert, richTextEditorSelectionData);
-		};
-
-		const editDrawing = async (resourceUrl: string): Promise<Resource | null> => {
-			const expectedMime = 'image/svg+xml';
-			const resource = await Resource.fromURL(tmpdir, resourceUrl, '.svg', expectedMime);
-
-			if (!resource) {
-				throw new Error('Invalid resource URL!');
-			}
-
-			if (resource.mime !== expectedMime) {
-				alert(localization.notAnEditableImage(resourceUrl, resource.mime));
-				return null;
-			}
-
-			const drawingData = await drawingDialog.promptForDrawing(await resource.getDataAsString());
-
-			// Action canceled by the user.
-			if (drawingData === null) {
-				return null;
-			}
-
-			const [updatedData, saveOption] = drawingData;
-
-			if (saveOption === 'overwrite') {
-				console.log('Image editor: Overwriting resource...');
-				await resource.updateData(updatedData);
-			} else {
-				console.log('Image editor: Inserting new drawing...');
-				await insertNewDrawing(updatedData);
-			}
-
-			return resource;
-		};
-
-		const toolbuttonCommand = `${pluginPrefix}insertDrawing`;
+		const toolbuttonCommand = `${pluginPrefix}processWorkLogs`;
 
 		await joplin.commands.register({
 			name: toolbuttonCommand,
-			label: localization.insertDrawing,
-			iconName: 'fas fa-pen-alt',
+			label: localization.processWorkLogs,
+			iconName: 'fas fa-briefcase',
 			execute: async () => {
-				const selection = await joplin.commands.execute('selectedText');
+				const settings = await settingsManager.getSettings();
 
-				// If selecting a resource URL, edit that. Else, insert a new drawing.
-				if (selection && /^:\/[a-zA-Z0-9]+$/.exec(selection)) {
-					console.log('Attempting to edit selected resource,', selection);
+				// Get all notes in the target folder
+				const parentId = settings.workNotebookId;
 
-					// TODO: Update the cache-breaker for the resource.
-					await editDrawing(selection);
-				} else {
-					const selectionData = await saveRichTextEditorSelection();
-					const drawingData = await drawingDialog.promptForDrawing();
+				type NoteTitleIdRecord = { title: string; id: string; hrs: number };
+				const duplicateNotes: NoteTitleIdRecord[] = [];
+				const notesWithWarnings: NoteTitleIdRecord[] = [];
+				let totalMinutes = 0;
+				const dateToMinutes: Array<[string, number]> = [];
+				const dateToTables: Array<[string, string]> = [];
 
-					// If the user canceled the drawing,
-					if (!drawingData) {
-						// Clear the selection marker, if it exists.
-						if (selectionData) {
-							await insertText('', selectionData);
+				// Store the summary note ID/text if it already exists
+				const summaryNoteTitle = 'Summary';
+				let summaryId: string | null = null;
+				let summaryPrevText: string = '';
+
+				const notesFetchFields = [
+					'id',
+					'title',
+					'body',
+					'is_todo',
+					'todo_completed',
+					'is_conflict',
+				];
+				let notes;
+				let page = 0;
+
+				const seenDates = new Set<string>();
+
+				do {
+					notes = await joplin.data.get(['folders', parentId, 'notes'], {
+						fields: notesFetchFields,
+						page,
+					});
+					for (const item of notes.items) {
+						if (item.is_conflict) {
+							continue;
 						}
 
-						return;
+						if (item.title === summaryNoteTitle) {
+							summaryId = item.id;
+							summaryPrevText = item.body;
+							continue;
+						}
+
+						if (
+							item.is_todo &&
+							!item.todo_completed &&
+							item.title.match(/^\s*2\d\d\d[/-]\d+[/-]\d+\s*$/)
+						) {
+							if (seenDates.has(item.title)) {
+								const newContent = computeNewNoteContent(item.body);
+								duplicateNotes.push({
+									title: item.title,
+									id: item.id,
+									hrs: newContent.totalMinutes / 60,
+								});
+								continue;
+							}
+							seenDates.add(item.title);
+
+							const originalBody = item.body;
+							const newContent = computeNewNoteContent(originalBody);
+							totalMinutes += newContent.totalMinutes;
+
+							if (newContent.hadWarnings) {
+								notesWithWarnings.push({
+									title: item.title,
+									id: item.id,
+									hrs: newContent.totalMinutes / 60,
+								});
+							}
+
+							dateToMinutes.push([item.title, newContent.totalMinutes]);
+							dateToTables.push([item.title, newContent.table]);
+
+							if (newContent.newBody !== originalBody) {
+								await joplin.data.put(['notes', item.id], null, { body: newContent.newBody });
+							}
+						}
 					}
 
-					const [svgData, _saveOption] = drawingData;
-					await insertNewDrawing(svgData, selectionData);
+					page++;
+				} while (notes.has_more);
+
+				const sortByDate = (array: Array<[string, any]>) => {
+					array.sort((a, b) => {
+						return new Date(a[0]).getTime() - new Date(b[0]).getTime();
+					});
+				};
+				sortByDate(dateToMinutes);
+				sortByDate(dateToTables);
+
+				if (dateToMinutes.length === 0) {
+					alert('No data to process');
+					return;
+				}
+
+				const calendarHeader = [
+					`| Dates | Sun | Mon | Tue | Wed | Thu | Fri | Sat | SUM (hr) |`,
+					'|--|--|--|--|--|--|--|--|--|',
+				];
+				const calendarText = [...calendarHeader];
+				const firstDayOfMonth = new Date(dateToMinutes[0][0]).getUTCDate();
+
+				// Add empty rows for each non-tracked date
+				for (let i = 7; i <= firstDayOfMonth; i += 7) {
+					calendarText.push('| - | - | - | - | - | - | - | - | - |');
+				}
+
+				const dateTime = (date: string) => {
+					return new Date(date).getTime();
+				};
+
+				const costPerWeekTSV = ['\t\t\tHours\tCost'];
+				let weekNum = 0;
+				let sumForPastFewWeeks = 0;
+
+				// Fill the table
+				let totalWeekSums = 0;
+				let i = 0;
+				while (i < dateToMinutes.length) {
+					const startDateString = dateToMinutes[i][0];
+					const currentDate = new Date(startDateString);
+					const currentDayOfWeek = currentDate.getUTCDay();
+
+					let hoursInWeek = 0;
+					let weekLine = '|';
+					for (let j = 0; j < currentDayOfWeek; j++) {
+						weekLine += ' - |';
+					}
+
+					let lastDateString = startDateString;
+					for (let j = currentDayOfWeek; j < 7; i++, j++) {
+						if (i >= dateToMinutes.length) {
+							weekLine += ' . |';
+						} else {
+							const minutes = dateToMinutes[i][1];
+							const hours = minutes / 60;
+							hoursInWeek += hours;
+							weekLine += ` ${Math.floor(hours * 10) / 10} |`;
+							lastDateString = dateToMinutes[i][0];
+						}
+
+						if (j + 1 < 7 && i + 1 < dateToMinutes.length) {
+							const nowTime = dateTime(dateToMinutes[i][0]);
+							const nextTime = dateTime(dateToMinutes[i + 1][0]);
+							const timeDeltaDays = (nextTime - nowTime) / 1000 / 60 / 60 / 24;
+
+							// Don't increase i -- we need to continue on to the next i index.
+							// timeDeltaDays - 1: We expect a delta of 1, but sometimes it's more.
+							for (let k = 0; k < timeDeltaDays - 1 && j < 7; k++, j++) {
+								weekLine += ' _ |';
+							}
+						}
+					}
+
+					weekLine += ` ${Math.floor(hoursInWeek * 10) / 10} |`;
+					calendarText.push(`| ${startDateString} - ${lastDateString} ` + weekLine);
+					totalWeekSums += hoursInWeek;
+
+					// Handle per week subtotals
+					//
+					const toRoundedString = (x: number) => {
+						return (Math.floor(100 * x) / 100).toLocaleString();
+					};
+
+					sumForPastFewWeeks += hoursInWeek;
+
+					const roundedCost = toRoundedString(hoursInWeek * settings.hourlyWage);
+					costPerWeekTSV.push(
+						`Week ${weekNum++ + 1}\t\t${toRoundedString(
+							hoursInWeek,
+						)}\t${roundedCost.toLocaleString()} USD`,
+					);
+
+					if (weekNum % 4 === 0 || i >= dateToMinutes.length) {
+						const roundedTotalCost = toRoundedString(totalWeekSums * settings.hourlyWage);
+						const roundedSectionCost = toRoundedString(sumForPastFewWeeks * settings.hourlyWage);
+
+						costPerWeekTSV.push(
+							`4 week sum:\t${toRoundedString(
+								sumForPastFewWeeks,
+							)}\t${roundedSectionCost.toLocaleString()} USD`,
+						);
+						costPerWeekTSV.push(
+							`Subtotal:\t${toRoundedString(
+								totalWeekSums,
+							)}\t${roundedTotalCost.toLocaleString()} USD`,
+						);
+						costPerWeekTSV.push('');
+
+						sumForPastFewWeeks = 0;
+					}
+				}
+
+				const noteRecordToLink = (note: NoteTitleIdRecord) =>
+					`[${note.title} (${Math.floor(note.hrs * 10) / 10} hr)](:/${note.id})`;
+
+				const warningText =
+					notesWithWarnings.length > 0
+						? `Items with warnings: ${notesWithWarnings.map(noteRecordToLink).join(', ')}`
+						: '';
+
+				const duplicatesText =
+					duplicateNotes.length > 0
+						? `Duplicates: ${duplicateNotes.map(noteRecordToLink).join(', ')}`
+						: '';
+
+				const summaryText = [
+					`# ${summaryNoteTitle}`,
+					'',
+					`Total: ${totalMinutes} min = ${totalMinutes / 60} hrs`,
+					'',
+					'## Raw data',
+					'',
+					createMinutesPerDayTable(dateToMinutes, settings.hourlyWage),
+					'',
+					'```text',
+					...costPerWeekTSV,
+					'```',
+					'',
+					'## Calendar',
+					...calendarText,
+					'',
+					`Total: ${Math.floor(totalWeekSums * 10) / 10}`,
+					'',
+					warningText,
+					'',
+					duplicatesText,
+					'',
+					'## Details',
+					'',
+					dateToTables.map((item) => [`### ${item[0]}`, item[1]].join('\n')).join('\n\n'),
+					'',
+					'# Previous summaries',
+					summaryPrevText,
+				].join('\n');
+
+				if (summaryId === null) {
+					await joplin.data.post(['notes'], null, {
+						title: 'Summary',
+						body: summaryText,
+						parent_id: parentId,
+					});
+				} else {
+					await joplin.data.put(['notes', summaryId], null, { body: summaryText });
 				}
 			},
 		});
 
-		await joplin.views.toolbarButtons.create(
-			toolbuttonCommand,
-			toolbuttonCommand,
-			ToolbarButtonLocation.EditorToolbar,
-		);
-
 		// Add to the edit menu. This allows users to assign a custom keyboard shortcut to the action.
-		const toolMenuInsertDrawingButtonId = `${pluginPrefix}insertDrawingToolMenuBtn`;
+		const toolMenuInsertDrawingButtonId = `${pluginPrefix}processWorkLogsButton`;
 		await joplin.views.menuItems.create(
 			toolMenuInsertDrawingButtonId,
 			toolbuttonCommand,
 			MenuItemLocation.Edit,
-		);
-
-		const restoreAutosaveCommand = `${pluginPrefix}restoreAutosave`;
-		const deleteAutosaveCommand = `${pluginPrefix}deleteAutosave`;
-		await joplin.commands.register({
-			name: restoreAutosaveCommand,
-			label: localization.restoreFromAutosave,
-			iconName: 'fas fa-floppy-disk',
-			execute: async () => {
-				const svgData = await getAutosave();
-
-				if (!svgData) {
-					await joplin.views.dialogs.showMessageBox(localization.noSuchAutosaveExists);
-					return;
-				}
-
-				await insertNewDrawing(svgData);
-			},
-		});
-		await joplin.commands.register({
-			name: deleteAutosaveCommand,
-			label: localization.deleteAutosave,
-			iconName: 'fas fa-trash-can',
-			execute: async () => {
-				await clearAutosave();
-			},
-		});
-
-		const markdownItContentScriptId = 'jsdraw__markdownIt_editDrawingButton';
-		await joplin.contentScripts.register(
-			ContentScriptType.MarkdownItPlugin,
-			markdownItContentScriptId,
-			'./contentScripts/markdownIt.js',
-		);
-
-		const codeMirrorContentScriptId = 'jsdraw__codeMirrorContentScriptId';
-		await joplin.contentScripts.register(
-			ContentScriptType.CodeMirrorPlugin,
-			codeMirrorContentScriptId,
-			'./contentScripts/codeMirror.js',
-		);
-		await joplin.contentScripts.onMessage(
-			markdownItContentScriptId,
-			async (resourceUrl: string) => {
-				return (await editDrawing(resourceUrl))?.resourceId;
-			},
 		);
 	},
 });

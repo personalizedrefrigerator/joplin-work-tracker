@@ -1,9 +1,10 @@
 {
-	"name": "joplin-plugin-freehand-drawing",
-	"version": "2.2.1",
+	"name": "joplin-plugin-work-tracking",
+	"version": "0.0.1",
+	"private": true,
 	"scripts": {
 		"dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
-		"prepare": "yarn dist",
+		"prepare": "npm run dist",
 		"update": "npm install -g generator-joplin && yo joplin --update",
 		"preinstall": "git config core.hookspath .githooks",
 		"lint-staged": "lint-staged",
@@ -43,8 +44,5 @@
 		"prettier": "3.0.3",
 		"lint-staged": "14.0.1"
 	},
-	"dependencies": {
-		"@js-draw/material-icons": "^1.5.0",
-		"js-draw": "^1.5.0"
-	}
+	"dependencies": {}
 }

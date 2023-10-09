@@ -1,19 +1,11 @@
 {
 	"manifest_version": 1,
-	"id": "io.github.personalizedrefrigerator.js-draw",
+	"id": "io.github.personalizedrefrigerator.work-tracker",
 	"app_min_version": "2.10",
-	"version": "2.2.1",
-	"name": "Freehand Drawing",
-	"description": "Create and edit drawings with js-draw.",
+	"version": "0.0.1",
+	"name": "Work tracker",
+	"description": "Track work time",
 	"author": "Henry Heino",
-	"homepage_url": "https://github.com/personalizedrefrigerator/joplin-draw",
-	"repository_url": "https://github.com/personalizedrefrigerator/joplin-draw",
-	"keywords": ["drawing", "freehand-drawing", "freehand", "handwriting"],
-	"categories": ["editor"],
-	"screenshots": [
-		{ "src": "../screenshots/editor-lightdark-fullscreen.png" },
-		{ "src": "../screenshots/editorview-light-1.png" },
-		{ "src": "../screenshots/editorview-light-2.png" },
-		{ "src": "../screenshots/editorview-dark.png" }
-	]
+	"keywords": ["time"],
+	"categories": ["productivity"]
 }
