@@ -45,6 +45,7 @@ joplin.plugins.register({
 				let notes;
 				let page = 0;
 
+				const ignoredDates = new Set<string>();
 				const seenDates = new Set<string>();
 
 				do {
@@ -66,7 +67,7 @@ joplin.plugins.register({
 						if (
 							item.is_todo &&
 							!item.todo_completed &&
-							item.title.match(/^\s*2\d\d\d[/-]\d+[/-]\d+\s*$/)
+							item.title.match(/^\s*2\d\d\d[/-]\d+[/-]\d+\s*([*]?)$/)
 						) {
 							if (seenDates.has(item.title)) {
 								const newContent = computeNewNoteContent(item.body);
@@ -81,7 +82,6 @@ joplin.plugins.register({
 
 							const originalBody = item.body;
 							const newContent = computeNewNoteContent(originalBody);
-							totalMinutes += newContent.totalMinutes;
 
 							if (newContent.hadWarnings) {
 								notesWithWarnings.push({
@@ -91,8 +91,17 @@ joplin.plugins.register({
 								});
 							}
 
-							dateToMinutes.push([item.title, newContent.totalMinutes]);
-							dateToTables.push([item.title, newContent.table]);
+							const ignored = item.title.endsWith('*');
+							const title = !ignored ? item.title : item.title.substring(0, item.title.length - 1);
+
+							if (!ignored) {
+								dateToMinutes.push([title, newContent.totalMinutes]);
+								totalMinutes += newContent.totalMinutes;
+							} else {
+								ignoredDates.add(title);
+							}
+
+							dateToTables.push([title, newContent.table]);
 
 							if (newContent.newBody !== originalBody) {
 								await joplin.data.put(['notes', item.id], null, { body: newContent.newBody });
@@ -165,7 +174,10 @@ joplin.plugins.register({
 						if (j + 1 < 7 && i + 1 < dateToMinutes.length) {
 							const nowTime = dateTime(dateToMinutes[i][0]);
 							const nextTime = dateTime(dateToMinutes[i + 1][0]);
-							const timeDeltaDays = (nextTime - nowTime) / 1000 / 60 / 60 / 24;
+
+							// Math.floor: Prevent inserting extra _s
+							const timeDeltaDays =
+								Math.floor(((nextTime - nowTime) / 1000 / 60 / 60 / 24) * 2) / 2;
 
 							// Don't increase i -- we need to continue on to the next i index.
 							// timeDeltaDays - 1: We expect a delta of 1, but sometimes it's more.
@@ -251,7 +263,17 @@ joplin.plugins.register({
 					'',
 					'## Details',
 					'',
-					dateToTables.map((item) => [`### ${item[0]}`, item[1]].join('\n')).join('\n\n'),
+					dateToTables
+						.map((item) => {
+							const title = item[0];
+							const ignoredText = ignoredDates.has(title) ? ' (ignored)' : '';
+							const ignoredLines = ignoredDates.has(title)
+								? ['> Not included in this time period.', '']
+								: [];
+
+							return [`### ${title}${ignoredText}`, ...ignoredLines, item[1]].join('\n');
+						})
+						.join('\n\n'),
 					'',
 					'# Previous summaries',
 					summaryPrevText,
