@@ -113,6 +113,8 @@ export default class SettingsManager {
 
 				type: SettingItemType.Int,
 				value: 38,
+				minimum: 0,
+				maximum: 100,
 			},
 		});
 

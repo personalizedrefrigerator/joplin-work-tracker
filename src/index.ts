@@ -1,10 +1,15 @@
 import joplin from 'api';
-import { MenuItemLocation } from 'api/types';
+import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
 import localization from './localization';
 import { pluginPrefix } from './constants';
 import SettingsManager from './SettingsManager';
 import computeNewNoteContent from './util/computeNewNoteContent';
 import createMinutesPerDayTable from './util/createMinutesPerDayTable';
+
+const isMobile = async () => {
+	const version = await joplin.versionInfo();
+	return 'platform' in version && version['platform'] === 'mobile';
+};
 
 joplin.plugins.register({
 	onStart: async function () {
@@ -167,7 +172,7 @@ joplin.plugins.register({
 							const minutes = dateToMinutes[i][1];
 							const hours = minutes / 60;
 							hoursInWeek += hours;
-							weekLine += ` ${Math.floor(hours * 10) / 10} |`;
+							weekLine += ` ${Math.floor(hours * 100) / 100} |`;
 							lastDateString = dateToMinutes[i][0];
 						}
 
@@ -187,7 +192,7 @@ joplin.plugins.register({
 						}
 					}
 
-					weekLine += ` ${Math.floor(hoursInWeek * 10) / 10} |`;
+					weekLine += ` ${Math.floor(hoursInWeek * 100) / 100} |`;
 					calendarText.push(`| ${startDateString} - ${lastDateString} ` + weekLine);
 					totalWeekSums += hoursInWeek;
 
@@ -227,7 +232,7 @@ joplin.plugins.register({
 				}
 
 				const noteRecordToLink = (note: NoteTitleIdRecord) =>
-					`[${note.title} (${Math.floor(note.hrs * 10) / 10} hr)](:/${note.id})`;
+					`[${note.title} (${Math.floor(note.hrs * 100) / 100} hr)](:/${note.id})`;
 
 				const warningText =
 					notesWithWarnings.length > 0
@@ -255,7 +260,7 @@ joplin.plugins.register({
 					'## Calendar',
 					...calendarText,
 					'',
-					`Total: ${Math.floor(totalWeekSums * 10) / 10}`,
+					`Total: ${Math.floor(totalWeekSums * 100) / 100}`,
 					'',
 					warningText,
 					'',
@@ -298,5 +303,14 @@ joplin.plugins.register({
 			toolbuttonCommand,
 			MenuItemLocation.Edit,
 		);
+
+		// Mobile doesn't have access to the edit menu
+		if (await isMobile()) {
+			await joplin.views.toolbarButtons.create(
+				`${pluginPrefix}processWorkLogsToolbarButton`,
+				toolbuttonCommand,
+				ToolbarButtonLocation.NoteToolbar,
+			);
+		}
 	},
 });
