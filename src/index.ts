@@ -5,6 +5,7 @@ import { pluginPrefix } from './constants';
 import SettingsManager from './SettingsManager';
 import computeNewNoteContent from './util/computeNewNoteContent';
 import createMinutesPerDayTable from './util/createMinutesPerDayTable';
+import createMultiDaySummary from './util/createMultiDaySummary';
 
 const isMobile = async () => {
 	const version = await joplin.versionInfo();
@@ -130,106 +131,10 @@ joplin.plugins.register({
 					return;
 				}
 
-				const calendarHeader = [
-					`| Dates | Sun | Mon | Tue | Wed | Thu | Fri | Sat | SUM (hr) |`,
-					'|--|--|--|--|--|--|--|--|--|',
-				];
-				const calendarText = [...calendarHeader];
-				const firstDayOfMonth = new Date(dateToMinutes[0][0]).getUTCDate();
-
-				// Add empty rows for each non-tracked date
-				for (let i = 7; i <= firstDayOfMonth; i += 7) {
-					calendarText.push('| - | - | - | - | - | - | - | - | - |');
-				}
-
-				const dateTime = (date: string) => {
-					return new Date(date).getTime();
-				};
-
-				const costPerWeekTSV = ['\t\t\tHours\tCost'];
-				let weekNum = 0;
-				let sumForPastFewWeeks = 0;
-
-				// Fill the table
-				let totalWeekSums = 0;
-				let i = 0;
-				while (i < dateToMinutes.length) {
-					const startDateString = dateToMinutes[i][0];
-					const currentDate = new Date(startDateString);
-					const currentDayOfWeek = currentDate.getUTCDay();
-
-					let hoursInWeek = 0;
-					let weekLine = '|';
-					for (let j = 0; j < currentDayOfWeek; j++) {
-						weekLine += ' - |';
-					}
-
-					let lastDateString = startDateString;
-					for (let j = currentDayOfWeek; j < 7; i++, j++) {
-						if (i >= dateToMinutes.length) {
-							weekLine += ' . |';
-						} else {
-							const minutes = dateToMinutes[i][1];
-							const hours = minutes / 60;
-							hoursInWeek += hours;
-							weekLine += ` ${Math.floor(hours * 100) / 100} |`;
-							lastDateString = dateToMinutes[i][0];
-						}
-
-						if (j + 1 < 7 && i + 1 < dateToMinutes.length) {
-							const nowTime = dateTime(dateToMinutes[i][0]);
-							const nextTime = dateTime(dateToMinutes[i + 1][0]);
-
-							// Math.floor: Prevent inserting extra _s
-							const timeDeltaDays =
-								Math.floor(((nextTime - nowTime) / 1000 / 60 / 60 / 24) * 2) / 2;
-
-							// Don't increase i -- we need to continue on to the next i index.
-							// timeDeltaDays - 1: We expect a delta of 1, but sometimes it's more.
-							for (let k = 0; k < timeDeltaDays - 1 && j < 7; k++, j++) {
-								weekLine += ' _ |';
-							}
-						}
-					}
-
-					weekLine += ` ${Math.floor(hoursInWeek * 100) / 100} |`;
-					calendarText.push(`| ${startDateString} - ${lastDateString} ` + weekLine);
-					totalWeekSums += hoursInWeek;
-
-					// Handle per week subtotals
-					//
-					const toRoundedString = (x: number) => {
-						return (Math.floor(100 * x) / 100).toLocaleString();
-					};
-
-					sumForPastFewWeeks += hoursInWeek;
-
-					const roundedCost = toRoundedString(hoursInWeek * settings.hourlyWage);
-					costPerWeekTSV.push(
-						`Week ${weekNum++ + 1}\t\t${toRoundedString(
-							hoursInWeek,
-						)}\t${roundedCost.toLocaleString()} USD`,
-					);
-
-					if (weekNum % 4 === 0 || i >= dateToMinutes.length) {
-						const roundedTotalCost = toRoundedString(totalWeekSums * settings.hourlyWage);
-						const roundedSectionCost = toRoundedString(sumForPastFewWeeks * settings.hourlyWage);
-
-						costPerWeekTSV.push(
-							`4 week sum:\t${toRoundedString(
-								sumForPastFewWeeks,
-							)}\t${roundedSectionCost.toLocaleString()} USD`,
-						);
-						costPerWeekTSV.push(
-							`Subtotal:\t${toRoundedString(
-								totalWeekSums,
-							)}\t${roundedTotalCost.toLocaleString()} USD`,
-						);
-						costPerWeekTSV.push('');
-
-						sumForPastFewWeeks = 0;
-					}
-				}
+				const { costPerWeekTSV, calendarText, totalWeekSums } = createMultiDaySummary({
+					dateToMinutes,
+					hourlyWage: settings.hourlyWage,
+				});
 
 				const noteRecordToLink = (note: NoteTitleIdRecord) =>
 					`[${note.title} (${Math.floor(note.hrs * 100) / 100} hr)](:/${note.id})`;
