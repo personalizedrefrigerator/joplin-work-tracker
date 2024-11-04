@@ -1,3 +1,3 @@
 # joplin-plugin-work-tracker
 
-A work-in-progress plugin.
+A plugin for tracking time spent on different tasks.
