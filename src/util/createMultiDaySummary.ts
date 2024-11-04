@@ -6,10 +6,11 @@ export type DateToMinutes = [DateString, number][];
 
 interface Props {
 	dateToMinutes: DateToMinutes;
+	linkifyDate?: (linkText: string, date: DateString) => string;
 	hourlyWage: number;
 }
 
-const createMultiDaySummary = ({ dateToMinutes, hourlyWage }: Props) => {
+const createMultiDaySummary = ({ dateToMinutes, hourlyWage, linkifyDate }: Props) => {
 	const calendarHeader = [
 		`| Dates | Sun | Mon | Tue | Wed | Thu | Fri | Sat | SUM (hr) |`,
 		'|--|--|--|--|--|--|--|--|--|',
@@ -25,6 +26,10 @@ const createMultiDaySummary = ({ dateToMinutes, hourlyWage }: Props) => {
 	const costPerWeekTSV = ['\t\t\tHours\tCost'];
 	let weekNum = 0;
 	let sumForPastFewWeeks = 0;
+
+	const numberFormatter = new Intl.NumberFormat('en-US', {
+		minimumFractionDigits: 2,
+	});
 
 	// Fill the table
 	let totalWeekSums = 0;
@@ -45,10 +50,14 @@ const createMultiDaySummary = ({ dateToMinutes, hourlyWage }: Props) => {
 			if (noteIdx >= dateToMinutes.length) {
 				weekLine += ' . |';
 			} else {
+				const dateString = dateToMinutes[noteIdx][0];
 				const minutes = dateToMinutes[noteIdx][1];
 				const hours = minutes / 60;
 				hoursInWeek += hours;
-				weekLine += ` ${Math.floor(hours * 100) / 100} |`;
+
+				const cellContent = numberFormatter.format(Math.floor(hours * 100) / 100);
+				const linkedCellContent = linkifyDate ? linkifyDate(cellContent, dateString) : cellContent;
+				weekLine += ` ${linkedCellContent} |`;
 				lastDateString = dateToMinutes[noteIdx][0];
 			}
 
@@ -72,14 +81,14 @@ const createMultiDaySummary = ({ dateToMinutes, hourlyWage }: Props) => {
 			}
 		}
 
-		weekLine += ` ${Math.floor(hoursInWeek * 100) / 100} |`;
+		weekLine += ` ${numberFormatter.format(Math.floor(hoursInWeek * 100) / 100)} |`;
 		calendarText.push(`| ${startDateString} - ${lastDateString} ` + weekLine);
 		totalWeekSums += hoursInWeek;
 
 		// Handle per week subtotals
 		//
 		const toRoundedString = (x: number) => {
-			return (Math.floor(100 * x) / 100).toLocaleString();
+			return numberFormatter.format(Math.floor(100 * x) / 100);
 		};
 
 		sumForPastFewWeeks += hoursInWeek;

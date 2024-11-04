@@ -8,9 +8,9 @@ describe('createMultiDaySummary', () => {
 				['2024/10/2', 240],
 			],
 			// Should fill final days in the chart with "."s
-			expectedTableContent: ['| 2024/10/1 - 2024/10/2 | - | - | 2 | 4 | . | . | . | 6 |'].join(
-				'\n',
-			),
+			expectedTableContent: [
+				'| 2024/10/1 - 2024/10/2 | - | - | 2.00 | 4.00 | . | . | . | 6.00 |',
+			].join('\n'),
 		},
 		{
 			dateToMinutes: <DateToMinutes>[
@@ -21,8 +21,8 @@ describe('createMultiDaySummary', () => {
 			],
 			// Should skip omitted dates.
 			expectedTableContent: [
-				'| 2024/10/1 - 2024/10/2 | - | - | 2 | 4 | _ | _ | _ | 6 |',
-				'| 2024/10/7 - 2024/10/8 | - | 3 | 4 | . | . | . | . | 7 |',
+				'| 2024/10/1 - 2024/10/2 | - | - | 2.00 | 4.00 | _ | _ | _ | 6.00 |',
+				'| 2024/10/7 - 2024/10/8 | - | 3.00 | 4.00 | . | . | . | . | 7.00 |',
 			].join('\n'),
 		},
 		{
@@ -33,8 +33,8 @@ describe('createMultiDaySummary', () => {
 			],
 			// Should skip empty weeks
 			expectedTableContent: [
-				'| 2024/10/1 - 2024/10/2 | - | - | 2 | 4 | _ | _ | _ | 6 |',
-				'| 2024/10/14 - 2024/10/14 | - | 3 | . | . | . | . | . | 3 |',
+				'| 2024/10/1 - 2024/10/2 | - | - | 2.00 | 4.00 | _ | _ | _ | 6.00 |',
+				'| 2024/10/14 - 2024/10/14 | - | 3.00 | . | . | . | . | . | 3.00 |',
 			].join('\n'),
 		},
 	])('should build table correctly (case %#)', ({ dateToMinutes, expectedTableContent }) => {

@@ -132,6 +132,9 @@ joplin.plugins.register({
 				const { costPerWeekTSV, calendarText, totalWeekSums } = createMultiDaySummary({
 					dateToMinutes,
 					hourlyWage: settings.hourlyWage,
+					linkifyDate: (linkText, date) => {
+						return `[${linkText}](#${date.replace(/[-/]/g, '')})`;
+					},
 				});
 
 				const noteRecordToLink = (note: NoteTitleIdRecord) =>
