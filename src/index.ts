@@ -38,7 +38,6 @@ joplin.plugins.register({
 				// Store the summary note ID/text if it already exists
 				const summaryNoteTitle = 'Summary';
 				let summaryId: string | null = null;
-				let summaryPrevText: string = '';
 
 				const notesFetchFields = [
 					'id',
@@ -66,7 +65,6 @@ joplin.plugins.register({
 
 						if (item.title === summaryNoteTitle) {
 							summaryId = item.id;
-							summaryPrevText = item.body;
 							continue;
 						}
 
@@ -185,8 +183,6 @@ joplin.plugins.register({
 						})
 						.join('\n\n'),
 					'',
-					'# Previous summaries',
-					summaryPrevText,
 				].join('\n');
 
 				if (summaryId === null) {
