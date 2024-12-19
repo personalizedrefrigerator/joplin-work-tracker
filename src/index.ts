@@ -12,6 +12,25 @@ const isMobile = async () => {
 	return 'platform' in version && version['platform'] === 'mobile';
 };
 
+const updateNoteContent = async (noteId: string, newContent: string) => {
+	await joplin.data.put(['notes', noteId], null, { body: newContent });
+
+	const selectedNoteIds = await joplin.workspace.selectedNoteIds();
+	if (selectedNoteIds?.length === 1 && noteId === selectedNoteIds[0]) {
+		try {
+			await joplin.commands.execute('editor.execCommand', {
+				name: 'setText',
+				args: [newContent],
+			});
+		} catch (error) {
+			console.log(
+				"Failed to set editor content. This can happen if the editor isn't open. Error: ",
+				error,
+			);
+		}
+	}
+};
+
 joplin.plugins.register({
 	onStart: async function () {
 		const settingsManager = new SettingsManager();
@@ -58,6 +77,7 @@ joplin.plugins.register({
 						fields: notesFetchFields,
 						page,
 					});
+
 					for (const item of notes.items) {
 						if (item.is_conflict) {
 							continue;
@@ -108,7 +128,7 @@ joplin.plugins.register({
 							dateToTables.push([title, newContent.table]);
 
 							if (newContent.newBody !== originalBody) {
-								await joplin.data.put(['notes', item.id], null, { body: newContent.newBody });
+								await updateNoteContent(item.id, newContent.newBody);
 							}
 						}
 					}
