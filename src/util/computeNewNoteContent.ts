@@ -67,6 +67,7 @@ const computeNewNoteContent = (originalBody: string) => {
 			'# Log',
 			...logContent,
 			'## Calculations',
+			'',
 			calculationsTable,
 			...afterCalculations,
 		].join('\n'),
