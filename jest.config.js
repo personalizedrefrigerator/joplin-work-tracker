@@ -2,7 +2,7 @@
 module.exports = {
 	preset: 'ts-jest',
 
-	testEnvironment: 'jsdom',
+	testEnvironment: 'node',
 	testEnvironmentOptions: {
 		// Prevents scripts from running within iframes. js-draw logs warnings
 		// if scripts are able to run in iframes that disallow scripts
