@@ -221,9 +221,9 @@ joplin.plugins.register({
 		});
 
 		// Add to the edit menu. This allows users to assign a custom keyboard shortcut to the action.
-		const toolMenuInsertDrawingButtonId = `${pluginPrefix}processWorkLogsButton`;
+		const processWorkLogsButtonId = `${pluginPrefix}processWorkLogsButton`;
 		await joplin.views.menuItems.create(
-			toolMenuInsertDrawingButtonId,
+			processWorkLogsButtonId,
 			toolbuttonCommand,
 			MenuItemLocation.Edit,
 		);
