@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
+import { ContentScriptType, MenuItemLocation, ToolbarButtonLocation } from 'api/types';
 import localization from './localization';
 import { pluginPrefix } from './constants';
 import SettingsManager from './SettingsManager';
@@ -236,5 +236,11 @@ joplin.plugins.register({
 				ToolbarButtonLocation.NoteToolbar,
 			);
 		}
+
+		await joplin.contentScripts.register(
+			ContentScriptType.CodeMirrorPlugin,
+			'work-tracker-content-script',
+			'./codeMirror/contentScript.js',
+		);
 	},
 });
