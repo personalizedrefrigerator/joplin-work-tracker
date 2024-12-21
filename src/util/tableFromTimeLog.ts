@@ -16,16 +16,19 @@ const tableFromTimeLog = (timeLog: string) => {
 		mainResult.push(newLine);
 	};
 
-	log('| Time delta | Description |');
-	log('|---|---|');
+	const deltaHeader = 'Time delta';
+	log(`| ${deltaHeader} | Description |`);
+	log(`|-${'-'.repeat(deltaHeader.length)}-|-------------|`);
 
 	for (const entry of parsedLog.entries) {
 		if (entry.hidden) continue;
 
 		const minutes = entry.minutes;
 		const notCounted = !entry.counted;
+		const minutesColumn = `${Math.floor(minutes / 60)}:${minutes % 60}`;
+		const spacing = ' '.repeat(Math.max(0, deltaHeader.length - minutesColumn.length));
 		log(
-			`| ${Math.floor(minutes / 60)}:${minutes % 60} | ${notCounted ? '**Not counted**: ' : ''}${
+			`| ${minutesColumn}${spacing} | ${notCounted ? '**Not counted**: ' : ''}${
 				entry.description
 			} |`,
 		);
