@@ -96,7 +96,7 @@ const parseTimeLog = (timeLog: string): TimeLog => {
 								line,
 							}),
 					);
-					return 0;
+					return lastTime;
 				}
 
 				const AMPMMatch = timeMatch[3];
@@ -145,6 +145,11 @@ const parseTimeLog = (timeLog: string): TimeLog => {
 
 			const preSep = part.substring(0, sep).trim();
 			const postSep = part.substring(sep + 1).trim();
+
+			if (postSep === '') {
+				warn(`Line missing end time. Line data: ${JSON.stringify(line)}`);
+				return;
+			}
 
 			const from = timeFrom(preSep);
 			const to = timeFrom(postSep);

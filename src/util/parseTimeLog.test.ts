@@ -56,4 +56,18 @@ describe('parseTimeLog', () => {
 			],
 		});
 	});
+
+	test('should handle incomplete items', () => {
+		const timeLog = parseTimeLog(['- 1:00-2:00: First', '- 2:01-'].join('\n'));
+
+		expect(timeLog).toMatchObject({
+			entries: [
+				{ line: 0, minutes: 60, runningTotal: 60, counted: true, hidden: false },
+				{ line: 1, minutes: 0, runningTotal: 60, counted: true },
+			],
+		});
+
+		expect(timeLog.warnings).toHaveLength(1);
+		expect(timeLog.warnings[0]).toMatch(/Line missing end time/);
+	});
 });
