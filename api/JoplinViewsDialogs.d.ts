@@ -1,5 +1,4 @@
-import Plugin from '../Plugin';
-import { ButtonSpec, ViewHandle, DialogResult } from './types';
+import { ButtonSpec, ViewHandle, DialogResult } from './types.ts';
 /**
  * Allows creating and managing dialogs. A dialog is modal window that
  * contains a webview and a row of buttons. You can update the
@@ -33,7 +32,7 @@ export default class JoplinViewsDialogs {
     private store;
     private plugin;
     private implementation_;
-    constructor(implementation: any, plugin: Plugin, store: any);
+    constructor(implementation: any, plugin: any, store: any);
     private controller;
     /**
      * Creates a new dialog
@@ -43,6 +42,12 @@ export default class JoplinViewsDialogs {
      * Displays a message box with OK/Cancel buttons. Returns the button index that was clicked - "0" for OK and "1" for "Cancel"
      */
     showMessageBox(message: string): Promise<number>;
+    /**
+     * Displays a dialog to select a file or a directory. Same options and
+     * output as
+     * https://www.electronjs.org/docs/latest/api/dialog#dialogshowopendialogbrowserwindow-options
+     */
+    showOpenDialog(options: any): Promise<any>;
     /**
      * Sets the dialog HTML content
      */

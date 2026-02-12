@@ -1,4 +1,4 @@
-import { ContentScriptContext, MarkdownEditorContentScriptModule } from 'api/types';
+import { CodeMirrorControl, ContentScriptContext } from 'api/types';
 import { Range } from '@codemirror/state';
 import {
 	Decoration,
@@ -162,9 +162,9 @@ const createFeedbackExtension = () => {
 	];
 };
 
-export default (_context: ContentScriptContext): MarkdownEditorContentScriptModule => {
+export default (_context: ContentScriptContext) => {
 	return {
-		plugin: async (editorControl) => {
+		plugin: async (editorControl: CodeMirrorControl) => {
 			editorControl.addExtension([createFeedbackExtension()]);
 		},
 	};

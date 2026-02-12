@@ -1,5 +1,4 @@
-import Plugin from '../Plugin';
-import Joplin from './Joplin';
+import Joplin from './Joplin.ts';
 /**
  * @ignore
  */
@@ -8,7 +7,7 @@ import Joplin from './Joplin';
  */
 export default class Global {
     private joplin_;
-    constructor(implementation: any, plugin: Plugin, store: any);
+    constructor(implementation: any, plugin: unknown, store: any);
     get joplin(): Joplin;
     get process(): any;
 }

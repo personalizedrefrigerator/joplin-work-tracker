@@ -1,16 +1,15 @@
-import Plugin from '../Plugin';
-import JoplinData from './JoplinData';
-import JoplinPlugins from './JoplinPlugins';
-import JoplinWorkspace from './JoplinWorkspace';
-import JoplinFilters from './JoplinFilters';
-import JoplinCommands from './JoplinCommands';
-import JoplinViews from './JoplinViews';
-import JoplinInterop from './JoplinInterop';
-import JoplinSettings from './JoplinSettings';
-import JoplinContentScripts from './JoplinContentScripts';
-import JoplinClipboard from './JoplinClipboard';
-import JoplinWindow from './JoplinWindow';
-import BasePlatformImplementation from '../BasePlatformImplementation';
+import JoplinData from './JoplinData.ts';
+import JoplinPlugins from './JoplinPlugins.ts';
+import JoplinWorkspace from './JoplinWorkspace.ts';
+import JoplinFilters from './JoplinFilters.ts';
+import JoplinCommands from './JoplinCommands.ts';
+import JoplinViews from './JoplinViews.ts';
+import JoplinInterop from './JoplinInterop.ts';
+import JoplinSettings from './JoplinSettings.ts';
+import JoplinContentScripts from './JoplinContentScripts.ts';
+import JoplinClipboard from './JoplinClipboard.ts';
+import JoplinWindow from './JoplinWindow.ts';
+import JoplinImaging from './JoplinImaging.ts';
 /**
  * This is the main entry point to the Joplin API. You can access various services using the provided accessors.
  *
@@ -26,6 +25,7 @@ import BasePlatformImplementation from '../BasePlatformImplementation';
 export default class Joplin {
     private data_;
     private plugins_;
+    private imaging_;
     private workspace_;
     private filters_;
     private commands_;
@@ -36,9 +36,10 @@ export default class Joplin {
     private clipboard_;
     private window_;
     private implementation_;
-    constructor(implementation: BasePlatformImplementation, plugin: Plugin, store: any);
+    constructor(implementation: unknown, plugin: unknown, store: any);
     get data(): JoplinData;
     get clipboard(): JoplinClipboard;
+    get imaging(): JoplinImaging;
     get window(): JoplinWindow;
     get plugins(): JoplinPlugins;
     get workspace(): JoplinWorkspace;
@@ -67,5 +68,5 @@ export default class Joplin {
      * [View the demo plugin](https://github.com/laurent22/joplin/tree/dev/packages/app-cli/tests/support/plugins/nativeModule)
      */
     require(_path: string): any;
-    versionInfo(): Promise<import("./types").VersionInfo>;
+    versionInfo(): Promise<import('./types.ts').VersionInfo>;
 }

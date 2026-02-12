@@ -1,5 +1,4 @@
-import Plugin from '../Plugin';
-import { SettingItem, SettingSection } from './types';
+import { SettingItem, SettingSection } from './types.ts';
 export interface ChangeEvent {
     /**
      * Setting keys that have been changed
@@ -18,7 +17,7 @@ export type ChangeHandler = (event: ChangeEvent) => void;
  */
 export default class JoplinSettings {
     private plugin_;
-    constructor(plugin: Plugin);
+    constructor(plugin: any);
     private get keyPrefix();
     private namespacedKey;
     /**
