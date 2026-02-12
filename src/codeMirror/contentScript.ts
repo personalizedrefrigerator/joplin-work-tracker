@@ -1,4 +1,4 @@
-import { CodeMirrorControl, ContentScriptContext } from 'api/types';
+import { CodeMirrorControl, ContentScriptContext } from 'api/types.ts';
 import { Range } from '@codemirror/state';
 import {
 	Decoration,
@@ -8,7 +8,7 @@ import {
 	ViewUpdate,
 	WidgetType,
 } from '@codemirror/view';
-import parseTimeLog from '../util/parseTimeLog';
+import parseTimeLog from '../util/parseTimeLog.ts';
 
 const percentFormatter = new Intl.NumberFormat('en-US', {
 	style: 'percent',

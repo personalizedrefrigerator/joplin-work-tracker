@@ -1,5 +1,5 @@
-import { msPerDay as msPerDay } from '../constants';
-import dateStringToDate from './dateStringToDate';
+import { msPerDay as msPerDay } from '../constants.ts';
+import dateStringToDate from './dateStringToDate.ts';
 
 type DateString = string;
 export type DateToMinutes = [DateString, number][];

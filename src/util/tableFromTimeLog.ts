@@ -1,4 +1,4 @@
-import parseTimeLog from './parseTimeLog';
+import parseTimeLog from './parseTimeLog.ts';
 
 /**
  * Converts a list in the form

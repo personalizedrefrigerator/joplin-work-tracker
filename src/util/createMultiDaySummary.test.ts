@@ -1,7 +1,12 @@
-import createMultiDaySummary, { DateToMinutes } from './createMultiDaySummary';
+import createMultiDaySummary from './createMultiDaySummary.ts';
+import type { DateToMinutes } from './createMultiDaySummary.ts';
+
+import { describe, test } from 'node:test';
+import { strict as assert } from 'node:assert';
 
 describe('createMultiDaySummary', () => {
-	test.each([
+	let i = 0;
+	for (const { dateToMinutes, expectedTableContent } of [
 		{
 			dateToMinutes: <DateToMinutes>[
 				['2024/10/1', 120],
@@ -37,14 +42,16 @@ describe('createMultiDaySummary', () => {
 				'| 2024/10/14 - 2024/10/14 | - | 3.00 | . | . | . | . | . | 3.00 |',
 			].join('\n'),
 		},
-	])('should build table correctly (case %#)', ({ dateToMinutes, expectedTableContent }) => {
-		const result = createMultiDaySummary({ dateToMinutes, hourlyWage: 1 });
+	]) {
+		test(`should build table correctly (case ${++i})`, () => {
+			const result = createMultiDaySummary({ dateToMinutes, hourlyWage: 1 });
 
-		const calendarLines = result.calendarText.split('\n');
-		expect(calendarLines[0]).toBe('| Dates | Sun | Mon | Tue | Wed | Thu | Fri | Sat | SUM (hr) |');
-		expect(calendarLines[1]).toBe('|--|--|--|--|--|--|--|--|--|');
+			const calendarLines = result.calendarText.split('\n');
+			assert.equal(calendarLines[0], '| Dates | Sun | Mon | Tue | Wed | Thu | Fri | Sat | SUM (hr) |');
+			assert.equal(calendarLines[1], '|--|--|--|--|--|--|--|--|--|');
 
-		const calendarContent = calendarLines.slice(2).join('\n');
-		expect(calendarContent).toBe(expectedTableContent);
-	});
+			const calendarContent = calendarLines.slice(2).join('\n');
+			assert.equal(calendarContent, expectedTableContent);
+		});
+	}
 });

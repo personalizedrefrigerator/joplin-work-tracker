@@ -1,6 +1,6 @@
-import joplin from 'api';
-import localization from './localization';
-import { SettingItemType, SettingStorage } from 'api/types';
+import joplin from 'api/index.ts';
+import localization from './localization.ts';
+import { SettingItemType, SettingStorage } from 'api/types.ts';
 
 export interface Settings {
 	readonly workNotebookId: string;

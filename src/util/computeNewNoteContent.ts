@@ -1,4 +1,4 @@
-import tableFromTimeLog from './tableFromTimeLog';
+import tableFromTimeLog from './tableFromTimeLog.ts';
 
 enum Stage {
 	BeforeLog,

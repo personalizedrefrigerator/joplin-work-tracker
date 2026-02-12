@@ -1,7 +1,9 @@
-import computeNewNoteContent from './computeNewNoteContent';
+import computeNewNoteContent from './computeNewNoteContent.ts';
+import { describe, test } from 'node:test';
+import { strict as assert } from 'node:assert';
 
 describe('computeNewNoteContent', () => {
-	it('should preserve post-calculations section and calculate simple duration correctly', () => {
+	test('should preserve post-calculations section and calculate simple duration correctly', () => {
 		const newContent = computeNewNoteContent(
 			[
 				'# Test',
@@ -24,11 +26,11 @@ describe('computeNewNoteContent', () => {
 			].join('\n'),
 		);
 
-		expect(newContent.totalMinutes).toBe(120);
-		expect(newContent.hadWarnings).toBe(false);
-		expect(newContent.newBody).toContain('Total: 120');
-		expect(newContent.newBody).toContain(
+		assert.equal(newContent.totalMinutes, 120);
+		assert.equal(newContent.hadWarnings, false);
+		assert.ok(newContent.newBody.includes('Total: 120'));
+		assert.ok(newContent.newBody.includes(
 			['', '## Scratch', 'This', ' Should', '   Be', '    Preserved'].join('\n'),
-		);
+		));
 	});
 });

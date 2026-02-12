@@ -1,11 +1,11 @@
-import joplin from 'api';
-import { ContentScriptType, MenuItemLocation, ToolbarButtonLocation } from 'api/types';
-import localization from './localization';
-import { pluginPrefix } from './constants';
-import SettingsManager from './SettingsManager';
-import computeNewNoteContent from './util/computeNewNoteContent';
-import createMinutesPerDayTable from './util/createMinutesPerDayTable';
-import createMultiDaySummary from './util/createMultiDaySummary';
+import joplin from 'api/index.ts';
+import { ContentScriptType, MenuItemLocation, ToolbarButtonLocation } from 'api/types.ts';
+import localization from './localization.ts';
+import { pluginPrefix } from './constants.ts';
+import SettingsManager from './SettingsManager.ts';
+import computeNewNoteContent from './util/computeNewNoteContent.ts';
+import createMinutesPerDayTable from './util/createMinutesPerDayTable.ts';
+import createMultiDaySummary from './util/createMultiDaySummary.ts';
 
 const isMobile = async () => {
 	const version = await joplin.versionInfo();
