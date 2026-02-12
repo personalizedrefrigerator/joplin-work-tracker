@@ -176,6 +176,10 @@ const parseTimeLog = (timeLog: string): TimeLog => {
 			.replace(/\n(\s*)\* /g, '\n$1• ')
 			// Newlines break tables
 			.replace(/\n/g, '<br/>');
+		
+		if (text.replace(/\.\?\%/g, '').trim() === '') {
+			warn('Missing description?');
+		}
 
 		if (!notCounted) {
 			totalDeltaMinutes += deltaMinutes;
